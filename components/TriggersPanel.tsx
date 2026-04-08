@@ -121,7 +121,7 @@ export default function TriggersPanel({ triggers, signal }: Props) {
     : 'border-gray-100 bg-white';
 
   const formatMA = () =>
-    `MA50 $${triggers.ma.ma50.toLocaleString('en-US', { maximumFractionDigits: 0 })} / MA200 $${triggers.ma.ma200.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+    `MA20 $${triggers.ma.ma20.toLocaleString('en-US', { maximumFractionDigits: 0 })} / MA50 $${triggers.ma.ma50.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
   const formatRSI = () => `RSI ${triggers.rsi.value.toFixed(1)}`;
   const formatMACD = () =>
     `Hist ${triggers.macd.histogram > 0 ? '+' : ''}${triggers.macd.histogram.toFixed(0)}`;

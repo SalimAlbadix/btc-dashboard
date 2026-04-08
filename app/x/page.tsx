@@ -155,6 +155,7 @@ export default function DashboardPage() {
           <Skeleton className="h-96" />
         ) : signalData ? (
           <PriceChart
+            ma20={signalData.triggers.ma.ma20}
             ma50={signalData.triggers.ma.ma50}
             ma200={signalData.triggers.ma.ma200}
             supportResistance={signalData.supportResistance}

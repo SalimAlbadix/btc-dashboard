@@ -91,24 +91,24 @@ export function buildTriggers(candles: Candle[]): TriggerData {
   const volumes = candles.map(c => c.volume);
   const price = closes[closes.length - 1];
 
-  // MA
+  // MA — Use MA20/MA50 crossover (responsive) instead of MA50/MA200 (stuck)
   const ma50 = calculateSMA(closes, 50);
   const ma200 = calculateSMA(closes, 200);
-  const maStatus: TriggerStatus = ma50 > ma200 ? 'bullish' : ma50 < ma200 ? 'bearish' : 'neutral';
+  const ma20 = calculateSMA(closes, 20);
+  const maStatus: TriggerStatus = ma20 > ma50 ? 'bullish' : ma20 < ma50 ? 'bearish' : 'neutral';
 
-  // RSI
+  // RSI — Momentum direction: >50 = bullish, <50 = bearish
   const rsi = calculateRSI(closes);
   let rsiStatus: TriggerStatus;
-  if (rsi >= 40 && rsi <= 60) rsiStatus = 'bullish';
-  else if (rsi > 65 || rsi < 35) rsiStatus = 'bearish';
+  if (rsi > 55) rsiStatus = 'bullish';
+  else if (rsi < 45) rsiStatus = 'bearish';
   else rsiStatus = 'neutral';
 
-  // MACD
+  // MACD — Histogram direction (accelerating vs decelerating)
   const { macd, signal, histogram, histogramPrev } = calculateMACD(closes);
   let macdStatus: TriggerStatus;
-  if (histogram > 0 && histogram > histogramPrev) macdStatus = 'bullish';
-  else if (histogram > 0) macdStatus = 'neutral';
-  else if (histogram < 0 && histogram < histogramPrev) macdStatus = 'bearish';
+  if (histogram > histogramPrev) macdStatus = 'bullish';
+  else if (histogram < histogramPrev) macdStatus = 'bearish';
   else macdStatus = 'neutral';
 
   // Volume
@@ -120,25 +120,25 @@ export function buildTriggers(candles: Candle[]): TriggerData {
   else if (volRatio < 0.8) volStatus = 'bearish';
   else volStatus = 'neutral';
 
-  // Support/Resistance
+  // Support/Resistance — Price vs MA20 (trend following, no circular dependency)
   const { nearest, distancePct, isNearSupport, isNearResistance } = getNearestSRLevel(price);
   let srStatus: TriggerStatus;
-  if (isNearSupport && maStatus === 'bullish') srStatus = 'bullish';
-  else if (isNearResistance && maStatus === 'bearish') srStatus = 'bearish';
-  else if (isNearSupport || isNearResistance) srStatus = 'neutral';
+  if (price > ma20) srStatus = 'bullish';
+  else if (price < ma20) srStatus = 'bearish';
   else srStatus = 'neutral';
 
   return {
     ma: {
       status: maStatus,
+      ma20,
       ma50,
       ma200,
-      label: maStatus === 'bullish' ? 'Golden Cross — Uptrend' : maStatus === 'bearish' ? 'Death Cross — Downtrend' : 'Flat — No Trend',
+      label: maStatus === 'bullish' ? 'MA20 > MA50 — Uptrend' : maStatus === 'bearish' ? 'MA20 < MA50 — Downtrend' : 'Flat — No Trend',
     },
     rsi: {
       status: rsiStatus,
       value: rsi,
-      label: rsi > 65 ? 'Overbought — Exhaustion' : rsi < 35 ? 'Oversold — Bounce Zone' : 'Neutral — Tradeable',
+      label: rsi > 70 ? 'Overbought — Exhaustion' : rsi > 55 ? 'Bullish Momentum' : rsi < 30 ? 'Oversold — Bounce Zone' : rsi < 45 ? 'Bearish Momentum' : 'Neutral — Tradeable',
     },
     macd: {
       status: macdStatus,
@@ -179,13 +179,15 @@ export function computeOverallSignal(triggers: TriggerData, price: number): {
   const bullishCount = statuses.filter(s => s === 'bullish').length;
   const bearishCount = statuses.filter(s => s === 'bearish').length;
 
-  // Foundation rule: MA must agree
-  const maIsBullish = triggers.ma.status === 'bullish';
-  const maIsBearish = triggers.ma.status === 'bearish';
-
+  // 4/5 majority vote — no single trigger can veto
   let signal: OverallSignal = 'WAIT';
-  if (maIsBullish && bullishCount >= 4) signal = 'BUY';
-  else if (maIsBearish && bearishCount >= 4) signal = 'SELL';
+  if (bullishCount >= 4) {
+    // RSI overbought filter: don't BUY into exhaustion
+    signal = triggers.rsi.value <= 75 ? 'BUY' : 'WAIT';
+  } else if (bearishCount >= 4) {
+    // RSI oversold filter: don't SELL at the bottom
+    signal = triggers.rsi.value >= 25 ? 'SELL' : 'WAIT';
+  }
 
   return { signal, bullishCount, bearishCount };
 }
