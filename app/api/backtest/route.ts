@@ -29,17 +29,17 @@ export async function GET() {
     }
 
     const START = 200; // Need 200 candles for MA200
-    const TP_PCT = 0.025; // +2.5% take profit
-    const SL_PCT = 0.015; // -1.5% stop loss (R:R = 1.67:1)
-    const COOLDOWN_DAYS = 2; // Skip signals within 2 days of last trade
+    const TP_PCT = 0.02;  // +2% take profit
+    const SL_PCT = 0.02;  // -2% stop loss
+    const COOLDOWN_DAYS = 3; // Skip signals within 3 days of last trade exit
     const POSITION_SIZE = 5000;
 
     const trades: BacktestTrade[] = [];
-    let lastTradeDay = -999; // Track last trade index for cooldown
+    let lastTradeEndDay = -999;
 
     for (let i = START; i < candles.length - 1; i++) {
-      // Cooldown: skip if too close to the last trade
-      if (i - lastTradeDay < COOLDOWN_DAYS) continue;
+      // Cooldown: skip if too close to last trade
+      if (i - lastTradeEndDay < COOLDOWN_DAYS) continue;
 
       const window = candles.slice(0, i + 1);
       const triggers = buildTriggers(window);
@@ -47,19 +47,21 @@ export async function GET() {
 
       if (signal === 'WAIT') continue;
 
-      // Enter at next-day open (more realistic than same-day close)
+      // Enter at next-day open (more realistic than signal-day close)
       const entryCandle = candles[i + 1];
       const entry = entryCandle.open;
       const tp = signal === 'BUY' ? entry * (1 + TP_PCT) : entry * (1 - TP_PCT);
       const sl = signal === 'BUY' ? entry * (1 - SL_PCT) : entry * (1 + SL_PCT);
 
-      // Simulate from entry day onward (up to 5 days after entry)
+      // Simulate next days
       let outcome: 'win' | 'loss' | 'expired' = 'expired';
       let exitPrice = entry;
       let daysHeld = 0;
+      let exitDay = i + 1;
 
-      for (let j = i + 1; j < Math.min(i + 6, candles.length); j++) {
+      for (let j = i + 1; j < Math.min(i + 4, candles.length); j++) {
         daysHeld = j - i;
+        exitDay = j;
         const c = candles[j];
         if (signal === 'BUY') {
           if (c.high >= tp) { outcome = 'win'; exitPrice = tp; break; }
@@ -68,8 +70,8 @@ export async function GET() {
           if (c.low <= tp)  { outcome = 'win'; exitPrice = tp; break; }
           if (c.high >= sl) { outcome = 'loss'; exitPrice = sl; break; }
         }
-        // Time stop: 5 days after entry → close at market
-        if (j === Math.min(i + 5, candles.length - 1)) {
+        // Time stop: 3 days → close at market
+        if (j === Math.min(i + 3, candles.length - 1)) {
           exitPrice = c.close;
           const pct = signal === 'BUY'
             ? (exitPrice - entry) / entry
@@ -94,7 +96,7 @@ export async function GET() {
         daysHeld,
       });
 
-      lastTradeDay = i; // Set cooldown reference
+      lastTradeEndDay = exitDay; // Cooldown from trade exit, not entry
     }
 
     const wins = trades.filter(t => t.outcome === 'win');

@@ -6,7 +6,6 @@ import { Candle, SupportResistanceLevel } from '@/lib/types';
 type Timeframe = '1D' | '1W' | '1M' | '3M' | '1Y';
 
 interface Props {
-  ma20: number;
   ma50: number;
   ma200: number;
   supportResistance: SupportResistanceLevel[];
@@ -19,7 +18,7 @@ function formatPrice(n: number) {
   return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 0 });
 }
 
-export default function PriceChart({ ma20, ma50, ma200, supportResistance, initialCandles }: Props) {
+export default function PriceChart({ ma50, ma200, supportResistance, initialCandles }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tf, setTf] = useState<Timeframe>('3M');
   const [candles, setCandles] = useState<Candle[]>(initialCandles);
@@ -149,23 +148,6 @@ export default function PriceChart({ ma20, ma50, ma200, supportResistance, initi
       if (isDailyChart && validCandles.length >= 50) {
         const closes = validCandles.map(c => c.close);
 
-        // MA20 line (primary crossover signal)
-        if (validCandles.length >= 20) {
-          const ma20Series = chart.addSeries(LineSeries, {
-            color: '#8B5CF6',
-            lineWidth: 2,
-            title: 'MA20',
-            priceLineVisible: false,
-            lastValueVisible: false,
-          });
-          const ma20Data = [];
-          for (let i = 19; i < validCandles.length; i++) {
-            const avg = closes.slice(i - 19, i + 1).reduce((a, b) => a + b, 0) / 20;
-            ma20Data.push({ time: ut(validCandles[i].time), value: avg });
-          }
-          ma20Series.setData(ma20Data);
-        }
-
         const ma50Series = chart.addSeries(LineSeries, {
           color: '#3B82F6',
           lineWidth: 2,
@@ -197,16 +179,6 @@ export default function PriceChart({ ma20, ma50, ma200, supportResistance, initi
         }
       } else {
         // Current MA as horizontal price lines
-        if (ma20 > 0) {
-          candleSeries.createPriceLine({
-            price: ma20,
-            color: '#8B5CF6',
-            lineWidth: 1,
-            lineStyle: LineStyle.Dashed,
-            axisLabelVisible: true,
-            title: `MA20 ${formatPrice(ma20)}`,
-          });
-        }
         if (ma50 > 0) {
           candleSeries.createPriceLine({
             price: ma50,
@@ -266,7 +238,7 @@ export default function PriceChart({ ma20, ma50, ma200, supportResistance, initi
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [candles, ma20, ma50, ma200, supportResistance, tf]);
+  }, [candles, ma50, ma200, supportResistance, tf]);
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
@@ -274,9 +246,6 @@ export default function PriceChart({ ma20, ma50, ma200, supportResistance, initi
         <div>
           <h2 className="font-semibold text-gray-900">Price Chart</h2>
           <div className="flex items-center gap-3 mt-1">
-            <span className="flex items-center gap-1 text-xs text-gray-500">
-              <span className="inline-block w-3 h-0.5 bg-purple-500 rounded" /> MA20
-            </span>
             <span className="flex items-center gap-1 text-xs text-gray-500">
               <span className="inline-block w-3 h-0.5 bg-blue-500 rounded" /> MA50
             </span>

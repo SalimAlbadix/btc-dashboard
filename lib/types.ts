@@ -13,7 +13,6 @@ export type OverallSignal = 'BUY' | 'SELL' | 'WAIT';
 export interface TriggerData {
   ma: {
     status: TriggerStatus;
-    ma20: number;
     ma50: number;
     ma200: number;
     label: string;
