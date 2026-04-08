@@ -179,14 +179,26 @@ export function computeOverallSignal(triggers: TriggerData, price: number): {
   const bullishCount = statuses.filter(s => s === 'bullish').length;
   const bearishCount = statuses.filter(s => s === 'bearish').length;
 
-  // 4/5 majority vote — no single trigger can veto
+  // Regime filter: MA50/MA200 determines trend direction
+  // Only trade in the direction of the long-term trend
+  const bullRegime = triggers.ma.ma50 > triggers.ma.ma200;
+  const bearRegime = triggers.ma.ma50 < triggers.ma.ma200;
+
+  // Count non-MA triggers (RSI, MACD, Volume, S/R) — 4 triggers
+  const confirmStatuses = [
+    triggers.rsi.status,
+    triggers.macd.status,
+    triggers.volume.status,
+    triggers.support.status,
+  ];
+  const confirmBullish = confirmStatuses.filter(s => s === 'bullish').length;
+  const confirmBearish = confirmStatuses.filter(s => s === 'bearish').length;
+
   let signal: OverallSignal = 'WAIT';
-  if (bullishCount >= 4) {
-    // RSI overbought filter: don't BUY into exhaustion
-    signal = triggers.rsi.value <= 75 ? 'BUY' : 'WAIT';
-  } else if (bearishCount >= 4) {
-    // RSI oversold filter: don't SELL at the bottom
-    signal = triggers.rsi.value >= 25 ? 'SELL' : 'WAIT';
+  if (bullRegime && confirmBullish >= 3 && triggers.rsi.value <= 70) {
+    signal = 'BUY';
+  } else if (bearRegime && confirmBearish >= 3 && triggers.rsi.value >= 30) {
+    signal = 'SELL';
   }
 
   return { signal, bullishCount, bearishCount };
