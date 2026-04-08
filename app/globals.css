@@ -1,26 +1,48 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --accent: #FF7832;
+  --green:  #10B981;
+  --red:    #EF4444;
+  --yellow: #F59E0B;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+* { box-sizing: border-box; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter, 'Inter', system-ui, -apple-system, sans-serif);
+  background: #F9FAFB;
+  color: #111827;
+  -webkit-tap-highlight-color: transparent;
 }
+
+/* Smooth scroll on mobile */
+html { scroll-behavior: smooth; }
+
+/* No horizontal overflow */
+body, #__next { overflow-x: hidden; }
+
+/* Pulse animations for signal states */
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  50%       { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+}
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50%       { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+}
+
+.signal-buy  { animation: pulse-green 2s ease-in-out infinite; }
+.signal-sell { animation: pulse-red   2s ease-in-out infinite; }
+
+/* Micro-transition on cards */
+.trigger-card { transition: all 0.2s ease; }
+.trigger-card:hover { transform: translateY(-1px); }
+
+/* Chart container */
+.chart-container { touch-action: pan-y pinch-zoom; }
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 4px; }
