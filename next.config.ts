@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
+  async redirects() {
+    return [{ source: '/', destination: '/x', permanent: false }];
+  },
 };
 
 export default nextConfig;
